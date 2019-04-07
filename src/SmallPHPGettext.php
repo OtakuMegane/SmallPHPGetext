@@ -21,7 +21,7 @@ class SmallPHPGettext
         $this->helpers = new Helpers();
         $this->domain_directories[$this->domain] = '';
         $this->domain_codesets[$this->domain] = $this->default_codeset;
-        $category_str = $this->helpers->categoryLookup($this->default_category);
+        $category_str = $this->helpers->categoryToString($this->default_category);
         $this->translations[$category_str] = array();
         $this->translations[$category_str][$this->domain] = array();
         $this->version = '2.0';
@@ -75,7 +75,7 @@ class SmallPHPGettext
 
     public function addTranslationsFromArray(array $translations, int $category)
     {
-        $category_str = $this->helpers->categoryLookup($category);
+        $category_str = $this->helpers->categoryToString($category);
         $this->translations[$category_str][$translations['domain']] = $translations;
         return isset($this->translations[$category_str][$translations['domain']]);
     }
@@ -89,13 +89,13 @@ class SmallPHPGettext
 
     public function translationLoaded(string $domain, int $category)
     {
-        $category_str = $this->helpers->categoryLookup($category);
+        $category_str = $this->helpers->categoryToString($category);
         return isset($this->translations[$category_str][$domain]) && !empty($this->translations[$category_str][$domain]);
     }
 
     public function getTranslations(string $domain, int $category)
     {
-        $category_str = $this->helpers->categoryLookup($category);
+        $category_str = $this->helpers->categoryToString($category);
         return (isset($this->translations[$category_str][$domain])) ? $this->translations[$category_str][$domain] : null;
     }
 
@@ -146,7 +146,7 @@ class SmallPHPGettext
 
     private function domainLoaded(string $domain, int $category, bool $load = true)
     {
-        $category_str = $this->helpers->categoryLookup($category);
+        $category_str = $this->helpers->categoryToString($category);
 
         if (isset($this->translations[$category_str][$domain]))
         {
@@ -176,7 +176,7 @@ class SmallPHPGettext
     private function singularMessage(string $msgid, string $domain, int $category, string $context = null)
     {
         $po_msgid = $this->helpers->stringToPo($msgid);
-        $category_str = $this->helpers->categoryLookup($category);
+        $category_str = $this->helpers->categoryToString($category);
         $valid = $this->domainLoaded($domain, $category, true);
         $message = '';
 
@@ -206,7 +206,7 @@ class SmallPHPGettext
             string $context = null)
     {
         $po_msgid1 = $this->helpers->stringToPo($msgid1);
-        $category_str = $this->helpers->categoryLookup($category);
+        $category_str = $this->helpers->categoryToString($category);
         $valid = $this->domainLoaded($domain, $category, true);
         $message = '';
 

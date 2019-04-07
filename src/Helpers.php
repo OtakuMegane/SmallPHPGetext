@@ -4,20 +4,37 @@ namespace SmallPHPGettext;
 
 class Helpers
 {
-    private $category_lookups = ['LC_ALL', 'LC_COLLATE', 'LC_CTYPE', 'LC_MONETARY', 'LC_NUMERIC', 'LC_TIME', 'LC_MESSAGES'];
+    private $category_lookups = [0 => 'LC_ALL', 1 => 'LC_COLLATE', 2 => 'LC_CTYPE', 3 => 'LC_MONETARY',
+        4 => 'LC_NUMERIC', 5 => 'LC_TIME', 6 => 'LC_MESSAGES', 'LC_ALL' => 0, 'LC_COLLATE' => 1, 'LC_CTYPE' => 2,
+        'LC_MONETARY' => 3, 'LC_NUMERIC' => 4, 'LC_TIME' => 5, 'LC_MESSAGES' => 6];
 
     function __construct()
     {
     }
 
-    public function categoryLookup(int $category)
+    public function categoryToString(int $category)
     {
-        return $this->category_lookups[$category];
+        if(isset($this->category_lookups[$category]))
+        {
+            return $this->category_lookups[$category];
+        }
+
+        return false;
+    }
+
+    public function categoryFromString(string $category)
+    {
+        if(isset($this->category_lookups[$category]))
+        {
+            return $this->category_lookups[$category];
+        }
+
+        return false;
     }
 
     public function poToString(string $string)
     {
-        $string =  preg_replace_callback('/(?<!\\\)(\\\[nrtvef])/u',
+        $string = preg_replace_callback('/(?<!\\\)(\\\[nrtvef])/u',
                 function ($match)
                 {
                     $conversions = ['\n' => "\n", '\r' => "\r", '\t' => "\t", '\v' => "\v", '\e' => "\e",
@@ -35,7 +52,7 @@ class Helpers
 
     public function stringToPo(string $string)
     {
-    		$conversions = ['\\' => '\\\\', "\n" => '\n', "\t" => '\t', "\"" => '\\"'];
-    		return strtr($string, $conversions);
+        $conversions = ['\\' => '\\\\', "\n" => '\n', "\t" => '\t', "\"" => '\\"'];
+        return strtr($string, $conversions);
     }
 }
