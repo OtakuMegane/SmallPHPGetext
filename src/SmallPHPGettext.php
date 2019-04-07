@@ -84,7 +84,7 @@ class SmallPHPGettext
     {
         $po = new ParsePo();
         $translations = $po->parseFile($file);
-        return $this->addDomainFromArray($translations, $category);
+        return $this->addTranslationsFromArray($translations, $category);
     }
 
     public function translationLoaded(string $domain, int $category)
@@ -111,12 +111,12 @@ class SmallPHPGettext
 
     public function bindtextdomain(string $domain, string $directory = null)
     {
-        if(!is_null($directory))
+        if (!is_null($directory))
         {
             $this->domain_directories[$domain] = $directory;
         }
 
-        if(isset($this->domain_directories[$domain]))
+        if (isset($this->domain_directories[$domain]))
         {
             return realpath($this->domain_directories[$domain]);
         }
@@ -154,11 +154,19 @@ class SmallPHPGettext
         }
         else
         {
+            if ($domain != $this->domain)
+            {
+                $this->textdomain($domain);
+            }
+
             if ($load)
             {
-                $file = $this->domain_directories[$domain] . '/' . $this->locale . '/' . $category_str . '/' . $domain .
-                        '.po';
-                return $this->addTranslationsFromFile($file, $category);
+                if (isset($this->domain_directories[$domain]) && file_exists($this->domain_directories[$domain]))
+                {
+                    $file = $this->domain_directories[$domain] . '/' . $this->locale . '/' . $category_str . '/' .
+                            $domain . '.po';
+                    return $this->addTranslationsFromFile($file, $category);
+                }
             }
 
             return false;
@@ -167,14 +175,14 @@ class SmallPHPGettext
 
     private function singularMessage(string $msgid, string $domain, int $category, string $context = null)
     {
-		$po_msgid = $this->helpers->stringToPo($msgid);
-		$category_str = $this->helpers->categoryLookup($category);
+        $po_msgid = $this->helpers->stringToPo($msgid);
+        $category_str = $this->helpers->categoryLookup($category);
         $valid = $this->domainLoaded($domain, $category, true);
         $message = '';
 
         if ($valid)
         {
-            if(!is_null($context))
+            if (!is_null($context))
             {
                 $message = $this->translations[$category_str][$domain]['translations'][$po_msgid]['contexts'][$context]['msgstr'] ?? '';
             }
@@ -184,26 +192,27 @@ class SmallPHPGettext
             }
         }
 
-        if($message !== '')
+        if ($message !== '')
         {
-        		return $this->helpers->poToString($message);
+            return $this->helpers->poToString($message);
         }
         else
         {
-			return $msgid;
+            return $msgid;
         }
     }
 
-    private function pluralMessage(string $msgid1, string $msgid2, int $n, string $domain, int $category, string $context = null)
+    private function pluralMessage(string $msgid1, string $msgid2, int $n, string $domain, int $category,
+            string $context = null)
     {
-    		$po_msgid1 = $this->helpers->stringToPo($msgid1);
-    		$category_str = $this->helpers->categoryLookup($category);
+        $po_msgid1 = $this->helpers->stringToPo($msgid1);
+        $category_str = $this->helpers->categoryLookup($category);
         $valid = $this->domainLoaded($domain, $category, true);
         $message = '';
 
         if ($valid)
         {
-            if(!is_null($context))
+            if (!is_null($context))
             {
                 $translation = $this->translations[$category_str][$domain]['translations'][$po_msgid1]['contexts'][$context] ?? null;
             }
@@ -212,21 +221,21 @@ class SmallPHPGettext
                 $translation = $this->translations[$category_str][$domain]['translations'][$po_msgid1] ?? null;
             }
 
-            if(!is_null($translation))
+            if (!is_null($translation))
             {
-            		$plural_rule = $this->translations[$category_str][$domain]['plural_rule'] ?? $this->default_plural_rule;
-            		eval($plural_rule);
+                $plural_rule = $this->translations[$category_str][$domain]['plural_rule'] ?? $this->default_plural_rule;
+                eval($plural_rule);
                 $message = $translation['plurals'][$plural] ?? '';
             }
         }
 
-        if($message !== '')
+        if ($message !== '')
         {
-        		return $this->helpers->poToString($message);
+            return $this->helpers->poToString($message);
         }
         else
         {
-        		return ($n === 1) ? $msgid1 : $msgid2;
+            return ($n === 1) ? $msgid1 : $msgid2;
         }
     }
 }
