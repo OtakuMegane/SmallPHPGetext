@@ -4,11 +4,11 @@ namespace SmallPHPGettext;
 
 class ParsePo
 {
-	private $string_helpers;
+	private $helpers;
 
 	function __construct()
 	{
-		$this->string_helpers = new StringHelpers();
+		$this->helpers = new Helpers();
 	}
 
     public function parseFile(string $file, string $domain = 'messages')
@@ -55,8 +55,8 @@ class ParsePo
             }
 
             $split_line = preg_split('/\s+/u', $line, 2, PREG_SPLIT_NO_EMPTY);
-            $split_line[0] = (!empty($split_line[0])) ? $this->string_helpers->unquoteLine(trim($split_line[0])) : '';
-            $split_line[1] = (!empty($split_line[1])) ? $this->string_helpers->unquoteLine(trim($split_line[1])) : '';
+            $split_line[0] = (!empty($split_line[0])) ? $this->helpers->unquoteLine(trim($split_line[0])) : '';
+            $split_line[1] = (!empty($split_line[1])) ? $this->helpers->unquoteLine(trim($split_line[1])) : '';
 
             if($first_character === '"') // Check for header lines or partial strings
             {

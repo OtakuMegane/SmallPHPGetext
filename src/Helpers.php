@@ -2,11 +2,17 @@
 
 namespace SmallPHPGettext;
 
-class StringHelpers
+class Helpers
 {
+    private $category_lookups = ['LC_ALL', 'LC_COLLATE', 'LC_CTYPE', 'LC_MONETARY', 'LC_NUMERIC', 'LC_TIME', 'LC_MESSAGES'];
 
     function __construct()
     {
+    }
+
+    public function categoryLookup(int $category)
+    {
+        return $this->category_lookups[$category];
     }
 
     public function poToString(string $string)

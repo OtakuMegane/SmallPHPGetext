@@ -14,18 +14,17 @@ class SmallPHPGettext
     private $domain_directories = array();
     private $translations = array();
     private $version;
-    private $category_lookups = ['LC_ALL', 'LC_COLLATE', 'LC_CTYPE', 'LC_MONETARY', 'LC_NUMERIC', 'LC_TIME', 'LC_MESSAGES'];
-    private $string_helpers;
+    private $helpers;
 
     function __construct()
     {
+        $this->helpers = new Helpers();
         $this->domain_directories[$this->domain] = '';
         $this->domain_codesets[$this->domain] = $this->default_codeset;
-        $category_str = $this->category_lookups[$this->default_category];
+        $category_str = $this->helpers->categoryLookup($this->default_category);
         $this->translations[$category_str] = array();
         $this->translations[$category_str][$this->domain] = array();
         $this->version = '2.0';
-        $this->string_helpers = new StringHelpers();
     }
 
     public function registerFunctions()
@@ -76,7 +75,7 @@ class SmallPHPGettext
 
     public function addTranslationsFromArray(array $translations, int $category)
     {
-        $category_str = $this->category_lookups[$category];
+        $category_str = $this->helpers->categoryLookup($category);
         $this->translations[$category_str][$translations['domain']] = $translations;
         return isset($this->translations[$category_str][$translations['domain']]);
     }
@@ -90,13 +89,13 @@ class SmallPHPGettext
 
     public function translationLoaded(string $domain, int $category)
     {
-        $category_str = $this->category_lookups[$category];
+        $category_str = $this->helpers->categoryLookup($category);
         return isset($this->translations[$category_str][$domain]) && !empty($this->translations[$category_str][$domain]);
     }
 
     public function getTranslations(string $domain, int $category)
     {
-        $category_str = $this->category_lookups[$category];
+        $category_str = $this->helpers->categoryLookup($category);
         return (isset($this->translations[$category_str][$domain])) ? $this->translations[$category_str][$domain] : null;
     }
 
@@ -117,7 +116,12 @@ class SmallPHPGettext
             $this->domain_directories[$domain] = $directory;
         }
 
-        return realpath($this->domain_directories[$domain]);
+        if(isset($this->domain_directories[$domain]))
+        {
+            return realpath($this->domain_directories[$domain]);
+        }
+
+        return $directory;
     }
 
     public function bind_textdomain_codeset(string $domain, string $codeset = null)
@@ -140,14 +144,9 @@ class SmallPHPGettext
         return $this->locale;
     }
 
-    public function categoryLookup(int $category)
-    {
-        return $this->category_lookups[$category];
-    }
-
     private function domainLoaded(string $domain, int $category, bool $load = true)
     {
-        $category_str = $this->category_lookups[$category];
+        $category_str = $this->helpers->categoryLookup($category);
 
         if (isset($this->translations[$category_str][$domain]))
         {
@@ -168,8 +167,8 @@ class SmallPHPGettext
 
     private function singularMessage(string $msgid, string $domain, int $category, string $context = null)
     {
-		$po_msgid = $this->string_helpers->stringToPo($msgid);
-        $category_str = $this->category_lookups[$category];
+		$po_msgid = $this->helpers->stringToPo($msgid);
+		$category_str = $this->helpers->categoryLookup($category);
         $valid = $this->domainLoaded($domain, $category, true);
         $message = '';
 
@@ -187,7 +186,7 @@ class SmallPHPGettext
 
         if($message !== '')
         {
-        		return $this->string_helpers->poToString($message);
+        		return $this->helpers->poToString($message);
         }
         else
         {
@@ -197,8 +196,8 @@ class SmallPHPGettext
 
     private function pluralMessage(string $msgid1, string $msgid2, int $n, string $domain, int $category, string $context = null)
     {
-    		$po_msgid1 = $this->string_helpers->stringToPo($msgid1);
-        $category_str = $this->category_lookups[$category];
+    		$po_msgid1 = $this->helpers->stringToPo($msgid1);
+    		$category_str = $this->helpers->categoryLookup($category);
         $valid = $this->domainLoaded($domain, $category, true);
         $message = '';
 
@@ -223,7 +222,7 @@ class SmallPHPGettext
 
         if($message !== '')
         {
-        		return $this->string_helpers->poToString($message);
+        		return $this->helpers->poToString($message);
         }
         else
         {
