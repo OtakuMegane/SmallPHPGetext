@@ -36,6 +36,7 @@ class ParsePo
             $first_character = substr($line, 0,1);
 
             // Empty lines usually occur between info blocks
+
             if(empty($line))
             {
                 if(!empty($entry))
@@ -54,23 +55,22 @@ class ParsePo
                 continue;
             }
 
-            $split_line = preg_split('/\s+/u', $line, 2, PREG_SPLIT_NO_EMPTY);
-            $split_line[0] = (!empty($split_line[0])) ? $this->helpers->unquoteLine(trim($split_line[0])) : '';
-            $split_line[1] = (!empty($split_line[1])) ? $this->helpers->unquoteLine(trim($split_line[1])) : '';
-
             if($first_character === '"') // Check for header lines or partial strings
             {
-                if (preg_match('/^[^:]*:/u', $split_line[0]) === 1)
+                if (preg_match('/^[^:]*:/u', $line) === 1)
                 {
+                    $split_line = $this->splitLine($line);
                     $domain_array = $this->parseHeaders($split_line, $domain_array);
                 }
                 else
                 {
-                    $entry[1] .= $split_line[0];
+                    $entry[1] .= $this->helpers->unquoteLine(trim($line));
                 }
             }
             else
             {
+                $split_line = $this->splitLine($line);
+
                 if($first_character === '#') // Check for comment lines
                 {
                     $translation = $this->parseComment($split_line, $translation);
@@ -191,5 +191,13 @@ class ParsePo
         }
 
         return $domain_array;
+    }
+
+    private function splitLine(string $line)
+    {
+        $split_line = preg_split('/\s+/u', $line, 2, PREG_SPLIT_NO_EMPTY);
+        $split_line[0] = (!empty($split_line[0])) ? $this->helpers->unquoteLine(trim($split_line[0])) : '';
+        $split_line[1] = (!empty($split_line[1])) ? $this->helpers->unquoteLine(trim($split_line[1])) : '';
+        return $split_line;
     }
 }
