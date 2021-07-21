@@ -9,7 +9,7 @@ class ParsePo
     {
     }
 
-    public function parseFile(string $file, string $domain = 'messages')
+    public function parseFile(string $file, string $domain = 'messages'): array
     {
         $string = '';
 
@@ -21,15 +21,16 @@ class ParsePo
         return $this->parseString($string, $domain);
     }
 
-    public function parseString(string $string, string $domain = 'messages')
+    public function parseString(string $string, string $domain = 'messages'): array
     {
         $domain_array = ['domain' => $domain, 'headers' => array(), 'translations' => array(), 'plural_rule' => ''];
         $asploded = explode("\n", $string);
         $translation = array();
         $entry = array();
         // Mark headers as processed once they're done so normal lines aren't assumed to be a header
-        $headers_started = false;
+        $headers_in_progress = false;
         $headers_done = false;
+        $header_entry = array();
 
         foreach ($asploded as $line)
         {
@@ -57,20 +58,53 @@ class ParsePo
 
             if ($first_character === '"') // Check for header lines or partial strings
             {
-                if (!$headers_done && preg_match('/^[^:]*:/u', $line) === 1)
+                $header_start = preg_match('/^[^:]*:/u', $line) === 1;
+
+                if (!$headers_done && $header_start)
                 {
-                    $headers_started = (!$headers_started) ? true : false;
-                    $split_line = $this->splitLine($line);
-                    $domain_array = $this->parseHeaders($split_line, $domain_array);
+                    $headers_in_progress = true;
+                }
+
+                if ($headers_in_progress)
+                {
+                    // A header is starting
+                    if ($header_start)
+                    {
+                        $header_data = $line;
+
+                        if (!isset($header_entry[0]) || $header_entry[0] === '')
+                        {
+                            preg_match('/([^:]+):(.+)/', $line, $matches);
+                            $header_entry[0] = $this->unquoteLine(trim($matches[1]));
+                            $header_entry[1] = '';
+                            $header_data = $matches[2];
+                        }
+                    }
+
+                    $header_entry[1] .= $this->unquoteLine(trim(str_replace('\n"', '', trim($header_data))));
+
+                    if (substr($line, -3) === '\n"')
+                    {
+                        $domain_array['headers'][$header_entry[0]] = $header_entry[1];
+
+                        if ($header_entry[0] === 'Plural-Forms')
+                        {
+                            $domain_array['plural_rule'] = $this->parsePluralRule($header_entry[1]);
+                        }
+
+                        $header_entry[0] = '';
+                        $header_entry[1] = '';
+                    }
                 }
 
                 $entry[1] .= $this->unquoteLine(trim($line));
             }
             else
             {
-                if (!$headers_done)
+                if ($headers_in_progress)
                 {
-                    $headers_done = ($headers_started) ? true : false;
+                    $headers_in_progress = false;
+                    $headers_done = true;
                 }
 
                 $split_line = $this->splitLine($line);
@@ -96,7 +130,7 @@ class ParsePo
         return $domain_array;
     }
 
-    private function parseMessage(array $split_line, array $translation)
+    private function parseMessage(array $split_line, array $translation): array
     {
         $message = $split_line[1];
 
@@ -136,44 +170,32 @@ class ParsePo
         return $translation;
     }
 
-    private function parseComment(array $split_line, array $translation)
+    private function parseComment(array $split_line, array $translation): array
     {
         $translation['comments'][$split_line[0]][] = $split_line[1];
         return $translation;
     }
 
-    private function combineMultiline(string $line)
+    private function parsePluralRule(string $rule_string): string
     {
-        return preg_replace('/"[\r\n]"/', '', $line);
-    }
-
-    private function parsePluralRule(string $header)
-    {
-        $plural_rule = preg_replace('/[^a-zA-Z0-9_:;\(\)\?\|\&=!<>+*\/\%-]/u', '', $header);
-        $plural_rule = preg_replace('/(nplurals|plural|n)/u', '$$1', $plural_rule);
-        $plural_rule .= ';';
-        $plural_rule = str_replace('?', '?(', $plural_rule);
-        $plural_rule = str_replace(':', '):(', $plural_rule);
-        $open = substr_count($plural_rule, '?');
-        $plural_rule = str_replace(';;', str_repeat(')', $open) . ';', $plural_rule);
+        $plural_rule = preg_replace('/nplurals.*?;|plural.*?=/', '', $rule_string);
+        $plural_rule = preg_replace('/[^\sn0-9:;\(\)\?\|\&=!<>\/\%-*\/]/', '', $plural_rule);
+        $plural_rule = preg_replace('/(n)/', '$$1', $plural_rule);
+        $plural_rule = 'return ' . $this->wrapTenary($plural_rule) . ';';
         return $plural_rule;
     }
 
-    private function parseHeaders(array $split_line, array $domain_array)
+    private function wrapTenary(string $expression): string
     {
-        $header_name = trim(trim($split_line[0]), ':');
-        $header_info = trim(trim($split_line[1]), '\n');
-        $domain_array['headers'][$header_name] = $header_info;
-
-        if (strcmp('Plural-Forms', $header_name) === 0)
+        if (preg_match('/((?:[^?]+)\?(?:[^:]+):)([^;]+)/', $expression, $matches) === 1)
         {
-            $domain_array['plural_rule'] = $this->parsePluralRule($header_info);
+            return $matches[1] . '(' . $this->wrapTenary($matches[2]) . ')';
         }
 
-        return $domain_array;
+        return $expression;
     }
 
-    private function storeTranslation(array $translation, array $domain_array)
+    private function storeTranslation(array $translation, array $domain_array): array
     {
         $id = $translation['msgid'];
 
@@ -197,7 +219,7 @@ class ParsePo
         return $domain_array;
     }
 
-    private function splitLine(string $line)
+    private function splitLine(string $line): array
     {
         $split_line = preg_split('/\s+/u', $line, 2, PREG_SPLIT_NO_EMPTY);
         $split_line[0] = (!empty($split_line[0])) ? $this->unquoteLine(trim($split_line[0])) : '';
@@ -205,7 +227,7 @@ class ParsePo
         return $split_line;
     }
 
-    private function unquoteLine(string $string)
+    private function unquoteLine(string $string): string
     {
         return preg_replace('/^"|"\s*?$/u', '', $string);
     }

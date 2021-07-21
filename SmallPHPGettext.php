@@ -77,67 +77,6 @@ class SmallPHPGettext
     }
 
     /**
-     * Stores a set of translations from the given array for the specified category.
-     *
-     * @param array $translations Array of translations.
-     * @param int $category The category for the translations.
-     * @return bool True if sucessfully stored, false if something went wrong.
-     */
-    public function addTranslationsFromArray(array $translations, string $domain, string $category): bool
-    {
-        $this->translations[$category][$domain] = $translations;
-        return isset($this->translations[$category][$domain]);
-    }
-
-    /**
-     * Stores a set of translations from the given .po file for the specified category.
-     *
-     * @param string $file Path to the file.
-     * @param int $category The category for the translations.
-     * @return bool True if sucessfully stored, false if something went wrong.
-     */
-    public function addTranslationsFromFile(string $file, string $domain, string $category): bool
-    {
-        $po = new ParsePo();
-        $translations = $po->parseFile($file, $domain);
-        return $this->addTranslationsFromArray($translations, $domain, $category);
-    }
-
-    /**
-     * Checks if a translation is loaded for the given domain and category.
-     *
-     * @param string $dfomain The domain to check.
-     * @param int $category The category to check.
-     * @return bool True if loaded, false if not.
-     */
-    public function translationLoaded(string $domain, string $category): bool
-    {
-        return isset($this->translations[$category][$domain]) && is_array($this->translations[$category][$domain]);
-    }
-
-    /**
-     * Gets the translation stored for the given domain and category.
-     *
-     * @param string $dfomain The domain to check.
-     * @param int $category The category to check.
-     * @return array The translation array. If nothing has been loaded, will return an empty array.
-     */
-    public function getTranslation(string $domain, string $category): array
-    {
-        if (!$this->translationLoaded($domain, $category))
-        {
-            $this->loadDomain($domain, $category);
-        }
-
-        if (isset($this->translations[$category][$domain]) && is_array($this->translations[$category][$domain]))
-        {
-            return $this->translations[$category][$domain];
-        }
-
-        return array();
-    }
-
-    /**
      * Gets or sets the current message domain.
      *
      * @param string [optional] $domain The message domain.
@@ -210,27 +149,93 @@ class SmallPHPGettext
         return $this->locale;
     }
 
-    private function loadDomain(string $domain, string $category): bool
+    /**
+     * Stores a set of translations from the given array for the specified category.
+     *
+     * @param array $translations Array of translations.
+     * @param int $category The category for the translations.
+     * @return bool True if sucessfully stored, false if something went wrong.
+     */
+    public function addTranslationFromArray(array $translations, string $domain, string $category): bool
+    {
+        $this->translations[$category][$domain] = $translations;
+        return isset($this->translations[$category][$domain]);
+    }
+
+    /**
+     * Stores a set of translations from the given .po file for the specified category.
+     *
+     * @param string $file Path to the file.
+     * @param int $category The category for the translations.
+     * @return bool True if sucessfully stored, false if something went wrong.
+     */
+    public function addTranslationFromFile(string $file, string $domain, string $category): bool
+    {
+        $po = new ParsePo();
+        $translations = $po->parseFile($file, $domain);
+        return $this->addTranslationFromArray($translations, $domain, $category);
+    }
+
+    /**
+     * Checks if a translation is loaded for the given domain and category.
+     *
+     * @param string $domain The domain to check.
+     * @param int $category The category to check.
+     * @return bool True if loaded, false if not.
+     */
+    public function translationLoaded(string $domain, string $category, bool $load = false): bool
+    {
+        $loaded = isset($this->translations[$category][$domain]) && is_array($this->translations[$category][$domain]);
+
+        if ($load && !$loaded)
+        {
+            return $this->loadTranslation($domain, $category);
+        }
+
+        return $loaded;
+    }
+
+    /**
+     * Gets the translation stored for the given domain and category.
+     *
+     * @param string $domain The domain to check.
+     * @param int $category The category to check.
+     * @return array The translation array. If nothing has been loaded, will return an empty array.
+     */
+    public function getTranslation(string $domain, string $category): array
+    {
+        if (!$this->translationLoaded($domain, $category))
+        {
+            $this->loadTranslation($domain, $category);
+        }
+
+        if (isset($this->translations[$category][$domain]) && is_array($this->translations[$category][$domain]))
+        {
+            return $this->translations[$category][$domain];
+        }
+
+        return array();
+    }
+
+    public function poDecode(string $string): string
+    {
+        $conversions = ['\\"' => '"', '\\\\' => '\\', '\n' => "\n", '\r' => "\r", '\t' => "\t", '\v' => "\v",
+            '\f' => "\f", '\e' => "\e", '\a' => "\x07", '\b' => "\x08"];
+        return strtr($string, $conversions);
+    }
+
+    public function poEncode(string $string): string
+    {
+        $conversions = ['"' => '\\"', '\\' => '\\\\', "\0" => '', "\n" => '\n', "\r" => '\r', "\t" => '\t'];
+        return strtr($string, $conversions);
+    }
+
+    private function loadTranslation(string $domain, string $category): bool
     {
         if (isset($this->domain_directories[$domain]) && file_exists($this->domain_directories[$domain]))
         {
             $file = $this->domain_directories[$domain] . '/' . $this->locale . '/' . $category . '/' . $domain . '.po';
-            return $this->addTranslationsFromFile($file, $domain, $category);
-        }
-
-        return false;
-    }
-
-    private function domainLoaded(string $domain, string $category, bool $load = true): bool
-    {
-        if ($this->translationLoaded($domain, $category))
-        {
-            return true;
-        }
-
-        if ($load)
-        {
-            return $this->loadDomain($domain, $category);
+            return $this->addTranslationFromFile($file, $domain, $category);
         }
 
         return false;
@@ -238,8 +243,8 @@ class SmallPHPGettext
 
     private function singularMessage(string $msgid, string $domain, string $category, string $context = null): string
     {
-        $po_msgid = $this->stringToPo($msgid);
-        $valid = $this->domainLoaded($domain, $category, true);
+        $po_msgid = $this->poEncode($msgid);
+        $valid = $this->translationLoaded($domain, $category, true);
         $message = '';
 
         if ($valid)
@@ -256,7 +261,7 @@ class SmallPHPGettext
 
         if ($message !== '')
         {
-            return $this->poToString($message);
+            return $this->poDecode($message);
         }
         else
         {
@@ -267,8 +272,8 @@ class SmallPHPGettext
     private function pluralMessage(string $msgid1, string $msgid2, int $n, string $domain, string $category,
             string $context = null): string
     {
-        $po_msgid1 = $this->stringToPo($msgid1);
-        $valid = $this->domainLoaded($domain, $category, true);
+        $po_msgid1 = $this->poEncode($msgid1);
+        $valid = $this->translationLoaded($domain, $category, true);
         $message = '';
 
         if ($valid)
@@ -285,36 +290,18 @@ class SmallPHPGettext
             if (!is_null($translation))
             {
                 $plural_rule = $this->translations[$category][$domain]['plural_rule'] ?? $this->default_plural_rule;
-                eval($plural_rule); // The evaluation result is stored in $plural
-                $message = $translation['plurals'][$plural] ?? '';
+                $index = eval($plural_rule);
+                $message = $translation['plurals'][$index] ?? '';
             }
         }
 
         if ($message !== '')
         {
-            return $this->poToString($message);
+            return $this->poDecode($message);
         }
         else
         {
             return ($n === 1) ? $msgid1 : $msgid2;
         }
-    }
-
-    private function poToString(string $string)
-    {
-        $string = preg_replace_callback('/(?<!\\\)(\\\[nrtvef])/u',
-                function ($match)
-                {
-                    $conversions = ['\n' => "\n", '\r' => "\r", '\t' => "\t", '\v' => "\v", '\e' => "\e", '\f' => "\f"];
-                    return strtr($match[0], $conversions);
-                }, $string);
-        $conversions = ['\\\\' => '\\', '\\' => ''];
-        return strtr($string, $conversions);
-    }
-
-    private function stringToPo(string $string)
-    {
-        $conversions = ['\\' => '\\\\', "\n" => '\n', "\t" => '\t', "\"" => '\\"'];
-        return strtr($string, $conversions);
     }
 }
