@@ -4,11 +4,9 @@ namespace SmallPHPGettext;
 
 class ParsePo
 {
-    private $helpers;
 
     function __construct()
     {
-        $this->helpers = new Helpers();
     }
 
     public function parseFile(string $file, string $domain = 'messages')
@@ -23,7 +21,7 @@ class ParsePo
         return $this->parseString($string, $domain);
     }
 
-    public function parseString(string $string, string $domain)
+    public function parseString(string $string, string $domain = 'messages')
     {
         $domain_array = ['domain' => $domain, 'headers' => array(), 'translations' => array(), 'plural_rule' => ''];
         $asploded = explode("\n", $string);
@@ -65,10 +63,8 @@ class ParsePo
                     $split_line = $this->splitLine($line);
                     $domain_array = $this->parseHeaders($split_line, $domain_array);
                 }
-                else
-                {
-                    $entry[1] .= $this->helpers->unquoteLine(trim($line));
-                }
+
+                $entry[1] .= $this->unquoteLine(trim($line));
             }
             else
             {
@@ -204,8 +200,13 @@ class ParsePo
     private function splitLine(string $line)
     {
         $split_line = preg_split('/\s+/u', $line, 2, PREG_SPLIT_NO_EMPTY);
-        $split_line[0] = (!empty($split_line[0])) ? $this->helpers->unquoteLine(trim($split_line[0])) : '';
-        $split_line[1] = (!empty($split_line[1])) ? $this->helpers->unquoteLine(trim($split_line[1])) : '';
+        $split_line[0] = (!empty($split_line[0])) ? $this->unquoteLine(trim($split_line[0])) : '';
+        $split_line[1] = (!empty($split_line[1])) ? $this->unquoteLine(trim($split_line[1])) : '';
         return $split_line;
+    }
+
+    private function unquoteLine(string $string)
+    {
+        return preg_replace('/^"|"\s*?$/u', '', $string);
     }
 }
