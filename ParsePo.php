@@ -4,6 +4,7 @@ namespace SmallPHPGettext;
 
 class ParsePo
 {
+    use Helpers;
 
     function __construct()
     {
@@ -174,25 +175,6 @@ class ParsePo
     {
         $translation['comments'][$split_line[0]][] = $split_line[1];
         return $translation;
-    }
-
-    private function parsePluralRule(string $rule_string): string
-    {
-        $plural_rule = preg_replace('/nplurals.*?;|plural.*?=/', '', $rule_string);
-        $plural_rule = preg_replace('/[^\sn0-9:;\(\)\?\|\&=!<>\/\%-*\/]/', '', $plural_rule);
-        $plural_rule = preg_replace('/(n)/', '$$1', $plural_rule);
-        $plural_rule = 'return ' . $this->wrapTenary($plural_rule) . ';';
-        return $plural_rule;
-    }
-
-    private function wrapTenary(string $expression): string
-    {
-        if (preg_match('/((?:[^?]+)\?(?:[^:]+):)([^;]+)/', $expression, $matches) === 1)
-        {
-            return $matches[1] . '(' . $this->wrapTenary($matches[2]) . ')';
-        }
-
-        return $expression;
     }
 
     private function storeTranslation(array $translation, array $domain_array): array

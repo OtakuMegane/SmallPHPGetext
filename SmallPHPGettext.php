@@ -4,6 +4,8 @@ namespace SmallPHPGettext;
 
 class SmallPHPGettext
 {
+    use Helpers;
+
     private $domain_codesets = array();
     private $default_codeset = 'UTF-8';
     private $default_context;
@@ -158,6 +160,8 @@ class SmallPHPGettext
      */
     public function addTranslationFromArray(array $translations, string $domain, string $category): bool
     {
+        // Re-parse to be safe since this method can accept data from outside
+        $translations['plural_rule'] = $this->parsePluralRule($translations['headers']['Plural-Forms'] ?? '');
         $this->translations[$category][$domain] = $translations;
         return isset($this->translations[$category][$domain]);
     }
@@ -215,19 +219,6 @@ class SmallPHPGettext
         }
 
         return array();
-    }
-
-    public function poDecode(string $string): string
-    {
-        $conversions = ['\\"' => '"', '\\\\' => '\\', '\n' => "\n", '\r' => "\r", '\t' => "\t", '\v' => "\v",
-            '\f' => "\f", '\e' => "\e", '\a' => "\x07", '\b' => "\x08"];
-        return strtr($string, $conversions);
-    }
-
-    public function poEncode(string $string): string
-    {
-        $conversions = ['"' => '\\"', '\\' => '\\\\', "\0" => '', "\n" => '\n', "\r" => '\r', "\t" => '\t'];
-        return strtr($string, $conversions);
     }
 
     private function loadTranslation(string $domain, string $category): bool
