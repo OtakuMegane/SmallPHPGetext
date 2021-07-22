@@ -17,7 +17,7 @@ class SmallPHPGettext
     private $domain;
     private $domain_directories = array();
     private $translations = array();
-    private $version;
+    private $version = '2.1';
 
     function __construct()
     {
@@ -26,7 +26,6 @@ class SmallPHPGettext
         $this->domain_codesets[$this->domain] = $this->default_codeset;
         $this->translations[$this->default_category] = array();
         $this->translations[$this->default_category][$this->domain] = array();
-        $this->version = '2.0';
     }
 
     /**
