@@ -1,11 +1,11 @@
 <?php
+declare(strict_types = 1);
 
 namespace SmallPHPGettext;
 
 class SmallPHPGettext
 {
     use Helpers;
-
     private $domain_codesets = array();
     private $default_codeset = 'UTF-8';
     private $default_context;
