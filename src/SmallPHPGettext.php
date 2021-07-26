@@ -17,7 +17,7 @@ class SmallPHPGettext
     private $domain;
     private $domain_directories = array();
     private $translations = array();
-    private $version = '2.1';
+    private $version = '2.1.1';
     private $category_to_string = [0 => 'LC_ALL', 1 => 'LC_COLLATE', 2 => 'LC_CTYPE', 3 => 'LC_MONETARY',
         4 => 'LC_NUMERIC', 5 => 'LC_TIME', 6 => 'LC_MESSAGES'];
     private $string_to_category = ['LC_ALL' => 0, 'LC_COLLATE' => 1, 'LC_CTYPE' => 2, 'LC_MONETARY' => 3,
