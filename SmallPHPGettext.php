@@ -18,10 +18,10 @@ class SmallPHPGettext
     private $domain_directories = array();
     private $translations = array();
     private $version = '2.1';
-    private $category_to_string = [0 => 'LC_CTYPE', 1 => 'LC_NUMERIC', 2 => 'LC_TIME', 3 => 'LC_COLLATE',
-    4 => 'LC_MONETARY', 5 => 'LC_MESSAGES', 6 => 'LC_ALL'];
-    private $string_to_category = ['LC_CTYPE' => 0, 'LC_NUMERIC' => 1, 'LC_TIME' => 2, 'LC_COLLATE' => 3,
-    'LC_MONETARY' => 4, 'LC_MESSAGES' => 5, 'LC_ALL' => 6];
+    private $category_to_string = [0 => 'LC_ALL', 1 => 'LC_COLLATE', 2 => 'LC_CTYPE', 3 => 'LC_MONETARY',
+        4 => 'LC_NUMERIC', 5 => 'LC_TIME', 6 => 'LC_MESSAGES'];
+    private $string_to_category = ['LC_ALL' => 0, 'LC_COLLATE' => 1, 'LC_CTYPE' => 2, 'LC_MONETARY' => 3,
+        'LC_NUMERIC' => 4, 'LC_TIME' => 5, 'LC_MESSAGES' => 6];
 
     function __construct()
     {
@@ -175,8 +175,9 @@ class SmallPHPGettext
     /**
      * Stores a set of translations from the given array for the specified category.
      *
-     * @param array $translations Array of translations.
-     * @param int $category The category for the translations.
+     * @param array $translation Array of translations.
+     * @param string $domain The domain to use.
+     * @param int $category The category to use.
      * @return bool True if sucessfully stored, false if something went wrong.
      */
     public function addTranslationFromArray(array $translation, string $domain, int $category): bool
@@ -188,10 +189,11 @@ class SmallPHPGettext
     }
 
     /**
-     * Stores a set of translations from the given .po file for the specified category.
+     * Stores a translation from the given .po file for the specified category.
      *
      * @param string $file Path to the file.
-     * @param int $category The category for the translations.
+     * @param string $domain The domain to use.
+     * @param int $category The category to use.
      * @return bool True if sucessfully stored, false if something went wrong.
      */
     public function addTranslationFromFile(string $file, string $domain, int $category): bool
@@ -205,6 +207,7 @@ class SmallPHPGettext
      *
      * @param string $domain The domain to check.
      * @param int $category The category to check.
+     * @param bool $load If true, attempts to load translation if it is not already loaded, then checks again.
      * @return bool True if loaded, false if not.
      */
     public function translationLoaded(string $domain, int $category, bool $load = false): bool
@@ -242,11 +245,11 @@ class SmallPHPGettext
     }
 
     /**
-     * Pasrses a Po file and returns the translation array.
+     * Parses a Po file and returns the translation array.
      *
      * @param string $file Path to the file.
-     * @param string $domain The domain to check.
-     * @param int $category The category to check.
+     * @param string $domain The domain to use.
+     * @param int $category The category to use.
      * @return array The translation array. If nothing was parsed from file, will return an empty array.
      */
     public function getTranslationFromFile(string $file, string $domain, int $category): array
@@ -254,6 +257,27 @@ class SmallPHPGettext
         $po = new ParsePo();
         $translation = $po->parseFile($file, $domain);
         return $translation;
+    }
+
+    /**
+     * Get the standard path for a Po file.
+     *
+     * @param string $file Path to the file.
+     * @param string $domain The domain to use.
+     * @param int $category The category to use.
+     * @return array The translation array. If nothing was parsed from file, will return an empty array.
+     */
+    public function getStandardPath(string $locale, string $domain, int $category, bool $relative): string
+    {
+        $base_directory = '';
+
+        if (!$relative)
+        {
+            $base_directory = $this->domain_directories[$domain] ?? $this->default_locale_directory;
+        }
+
+        return $base_directory . '/' . 'locale/' . $locale . '/' . $this->category_to_string[$category] . '/' . $domain .
+                '.po';
     }
 
     private function loadTranslation(string $domain, int $category): bool
