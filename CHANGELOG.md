@@ -1,4 +1,10 @@
 # SmallPHPGettext Changelog
+## v3.0 (2021/12/31)
+- Overhaul to improve functionality and simplify the API
+- Added checks before defining gettext functions
+- Added basic instructions
+- Various debugging
+
 ## v2.1.1 (2021/07/21)
 - Fixed category handling
 - Shift things back into src/
